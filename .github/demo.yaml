@@ -28,23 +28,4 @@ jobs:
           USERNAME: ${{ secrets.EC2_USERNAME }}
           HOST: ${{ secrets.EC2_HOST }}
           TARGET_DIR: /var/www/my-app # Adjust this path as needed
-        run: |
-          # 1. Add your EC2 host to known_hosts to prevent connection prompts
-          ssh-keyscan $HOST >> ~/.ssh/known_hosts
-
-          # 2. Copy all files recursively from the GitHub workspace to the EC2 target directory
-          # The '-r' flag is for recursive copy (folders), '-o StrictHostKeyChecking=no' is a legacy option
-          # We use the key injected by the 'Set up SSH Key' step for authentication
-          # The ':' separates the host from the remote path
-          scp -r * $USERNAME@$HOST:$TARGET_DIR
-
-          # 3. (Optional) Run post-deployment commands on the EC2 instance
-          echo "Running post-deployment commands on $HOST..."
-          ssh $USERNAME@$HOST "
-            cd $TARGET_DIR
-            # Example: Install dependencies for a Node.js app
-            # npm install
-            # Example: Restart a service (like a web server or application process)
-            # sudo systemctl restart my-service 
-            echo 'Deployment complete!'
-          "
+        run:

@@ -1,0 +1,50 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main # Trigger the workflow on pushes to the 'main' branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repository code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Set up SSH Key
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          # Your private SSH key, stored as a GitHub Secret
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🖥️ Deploy to EC2 via SSH
+        env:
+          # The key file is required by the ssh-agent action, but we use the agent for auth
+          # USERNAME: The SSH username for your EC2 instance (e.g., 'ec2-user', 'ubuntu')
+          # HOST: The public IP or DNS of your EC2 instance
+          # TARGET_DIR: The directory on your EC2 instance where the code should go
+          USERNAME: ${{ secrets.EC2_USERNAME }}
+          HOST: ${{ secrets.EC2_HOST }}
+          TARGET_DIR: /var/www/my-app # Adjust this path as needed
+        run: |
+          # 1. Add your EC2 host to known_hosts to prevent connection prompts
+          ssh-keyscan $HOST >> ~/.ssh/known_hosts
+
+          # 2. Copy all files recursively from the GitHub workspace to the EC2 target directory
+          # The '-r' flag is for recursive copy (folders), '-o StrictHostKeyChecking=no' is a legacy option
+          # We use the key injected by the 'Set up SSH Key' step for authentication
+          # The ':' separates the host from the remote path
+          scp -r * $USERNAME@$HOST:$TARGET_DIR
+
+          # 3. (Optional) Run post-deployment commands on the EC2 instance
+          echo "Running post-deployment commands on $HOST..."
+          ssh $USERNAME@$HOST "
+            cd $TARGET_DIR
+            # Example: Install dependencies for a Node.js app
+            # npm install
+            # Example: Restart a service (like a web server or application process)
+            # sudo systemctl restart my-service 
+            echo 'Deployment complete!'
+          "
